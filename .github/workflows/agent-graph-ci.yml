@@ -1,0 +1,34 @@
+name: Agent Graph CI
+
+on:
+  pull_request:
+    paths:
+      - 'lib/agents/**'
+      - 'lib/__tests__/agent-*.test.ts'
+      - 'app/api/agents/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/agent-graph-ci.yml'
+  push:
+    branches:
+      - feat/agent-graph-orchestrator
+    paths:
+      - 'lib/agents/**'
+      - 'lib/__tests__/agent-*.test.ts'
+      - 'app/api/agents/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/agent-graph-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:run
