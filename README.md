@@ -45,13 +45,20 @@ See the setup guides in the repository:
 - [API Configuration](./README_API_SETUP.md)
 - [Supabase Setup](./SUPABASE_SETUP.md)
 - [Extended Extraction](./README_EXTRUCT_SETUP.md)
+- [Parallel Agent Graph](./AGENT_GRAPH.md)
 
 ### Local Development
 
-`ash
+`\bash
 npm install
 npm run dev
 `
+
+## Parallel Agent Graph
+
+Getnius includes a budget-aware fan-out/fan-in agent graph using the Gemini Interactions API. A planner decomposes the objective, cheap workers execute independent branches in parallel, a stronger verifier selectively retries only weak branches, and a synthesizer produces the final result. The API exposes per-call token/cost telemetry and enforces a hard per-run budget ceiling.
+
+See [AGENT_GRAPH.md](./AGENT_GRAPH.md) for configuration, Docker usage, scaling guidance, and the `/api/agents/run` endpoint.
 
 ## Contributing
 
@@ -65,7 +72,7 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 
 If you use Getnius in your research, please cite this repository:
 
-`ibtex
+`\bibtex
 @software{nizhnichenko2026getnius,
   title = {Getnius: Open-Source Infrastructure for Reliable Multi-Agent Research Systems},
   author = {Nizhnichenko, Georgy},
