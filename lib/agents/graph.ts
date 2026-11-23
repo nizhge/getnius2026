@@ -142,6 +142,9 @@ export async function runAgentGraph(
 
   const calls: AgentCallTrace[] = [];
   let spentUsd = 0;
+  // Protect concurrent admissions by accounting for reservations before the first await.
+  // This does not turn a usage estimate into a guaranteed provider billing cap.
+  let inFlightReserveUsd = 0;
 
   async function invoke(
     role: AgentCallTrace['role'],
@@ -152,28 +155,36 @@ export async function runAgentGraph(
     systemInstruction?: string,
   ): Promise<ModelCallResult> {
     const reserve = estimatePreflightCostUsd(model, input, maxOutputTokens);
-    if (spentUsd + reserve > maxBudgetUsd) {
-      throw new AgentBudgetExceededError(maxBudgetUsd, spentUsd + reserve);
+    const admittedUsd = spentUsd + inFlightReserveUsd + reserve;
+    if (admittedUsd > maxBudgetUsd) {
+      throw new AgentBudgetExceededError(maxBudgetUsd, admittedUsd);
     }
 
-    const result = await provider.generate({
-      model,
-      input,
-      systemInstruction,
-      maxOutputTokens,
-    });
-    const estimatedCostUsd = estimateUsageCostUsd(result.model || model, result.usage);
-    spentUsd += estimatedCostUsd;
-    calls.push({
-      role,
-      taskId,
-      model: result.model || model,
-      latencyMs: result.latencyMs,
-      usage: result.usage,
-      estimatedCostUsd,
-      interactionId: result.interactionId,
-    });
-    return result;
+    // Admission is synchronous, so parallel JS tasks cannot pass on a stale spentUsd.
+    inFlightReserveUsd += reserve;
+    try {
+      const result = await provider.generate({
+        model,
+        input,
+        systemInstruction,
+        maxOutputTokens,
+      });
+      const estimatedCostUsd = estimateUsageCostUsd(result.model || model, result.usage);
+      spentUsd += estimatedCostUsd;
+      calls.push({
+        role,
+        taskId,
+        model: result.model || model,
+        latencyMs: result.latencyMs,
+        usage: result.usage,
+        estimatedCostUsd,
+        interactionId: result.interactionId,
+      });
+      return result;
+    } finally {
+      // Release on success and provider failure; recorded spend remains in spentUsd.
+      inFlightReserveUsd = Math.max(0, inFlightReserveUsd - reserve);
+    }
   }
 
   const plannerPrompt = `You are the planner for a parallel research/analysis graph.\n\nOBJECTIVE:\n${objective}\n\nCreate at most ${workerCount} non-overlapping worker tasks. Prefer fewer tasks when more would be redundant. Each worker must be independently executable. Mark factual, financial, legal, safety, or high-consequence claims as higher risk.\n\nReturn JSON only in this schema:\n{"rationale":"short explanation","tasks":[{"id":"worker-1","objective":"specific task","context":"optional context","risk":"low|medium|high"}]}`;
