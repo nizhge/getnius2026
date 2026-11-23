@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "plugins": []
+  },
+  "include": [
+    "next-env.d.ts",
+    "lib/agents/**/*.ts",
+    "lib/__tests__/agent-graph.test.ts",
+    "lib/__tests__/agent-cost.test.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
+}
