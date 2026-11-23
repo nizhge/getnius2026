@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - feat/agent-graph-orchestrator
+      - fix/agent-budget-inflight-20261123
     paths:
       - 'lib/agents/**'
       - 'lib/__tests__/agent-*.test.ts'
